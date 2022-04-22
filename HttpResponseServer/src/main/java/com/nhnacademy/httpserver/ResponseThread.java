@@ -5,16 +5,15 @@ import com.nhnacademy.responsedata.ClassPacket;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
-import java.text.Normalizer;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -96,7 +95,11 @@ public class ResponseThread implements Runnable {
                 map.put("data", createDataObject(jsonStr));
                 map.put("files", createFileObject());
                 map.put("form", createFormObject());
-                map.put("hearders", headerMapSetting(request));
+                Map<String ,String> s = headerMapSetting(request);
+                map.put("json", createJson(jsonStr));
+
+                s.put("Content-Length", message.toString().length()+"");
+                map.put("headers", s);
                 map.put("origin", socket.getInetAddress().toString().replace("/", ""));
                 map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
                 String responseJsonBody =
@@ -113,6 +116,24 @@ public class ResponseThread implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private Object createJson(String jsonStr) {
+        Map <String, String> returnJson = new LinkedHashMap<>();
+        jsonStr = jsonStr.replace("\"", "").replace("{", "").replace("}", "");
+
+        if (!jsonStr.contains(",")) {
+            String[] temp = jsonStr.split(":");
+            returnJson.put(temp[0].trim(), temp[1].trim());
+        } else {
+            String[] jsonString = jsonStr.split(",");
+            for (String s : jsonString) {
+                String[] temp = s.split(":");
+                returnJson.put(temp[0].trim(), temp[1].trim());
+            }
+        }
+
+        return returnJson;
     }
 
     private Object createFormObject() {
@@ -187,6 +208,5 @@ public class ResponseThread implements Runnable {
         }
         return returnMap;
     }
-
 
 }
