@@ -5,10 +5,12 @@ import com.nhnacademy.responsedata.ClassPacket;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.text.Normalizer;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -67,7 +69,6 @@ public class ResponseThread implements Runnable {
 
             ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> map = new HashMap<>();
-            OffsetDateTime currentTime = OffsetDateTime.now();
 
 
             if (request.getUrlPath().contains("/ip")) {
@@ -75,7 +76,7 @@ public class ResponseThread implements Runnable {
                 map.put("origin", socket.getInetAddress().toString().replace("/", ""));
                 json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
                 System.out.println(json);   // pretty-print
-                printResponseHeader(printStream, currentTime, json);
+                printResponseHeader(printStream, json);
                 printStream.println(json);
                 printStream.flush();
 
@@ -87,13 +88,22 @@ public class ResponseThread implements Runnable {
                 String responseJsonBody =
                     mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
 
-                printResponseHeader(printStream, currentTime, responseJsonBody);
+                printResponseHeader(printStream, responseJsonBody);
                 printStream.println(responseJsonBody);
             } else if (request.getUrlPath().contains("/post")) {
+
                 map.put("args", createArgsMap(request.getUrlPathArgs()));
+                map.put("data", createDataObject(jsonStr));
+                map.put("files", createFileObject());
+                map.put("form", createFormObject());
                 map.put("hearders", headerMapSetting(request));
                 map.put("origin", socket.getInetAddress().toString().replace("/", ""));
                 map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
+                String responseJsonBody =
+                    mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
+
+                printResponseHeader(printStream, responseJsonBody);
+                printStream.println(responseJsonBody);
 
 
             } else {
@@ -105,8 +115,25 @@ public class ResponseThread implements Runnable {
         }
     }
 
-    private void printResponseHeader(PrintStream printStream, OffsetDateTime currentTime,
+    private Object createFormObject() {
+        Map<String, String> returnFormMap = new HashMap<>();
+        return returnFormMap;
+    }
+
+    private Object createFileObject() {
+        Map<String, String> returnFileMap = new HashMap<>();
+        return returnFileMap;
+    }
+
+    private Object createDataObject(String jsonStr) {
+        List<String> returnDataList = new ArrayList<>();
+        returnDataList.add(jsonStr.trim());
+        return returnDataList;
+    }
+
+    private void printResponseHeader(PrintStream printStream,
                                      String json) {
+        OffsetDateTime currentTime = OffsetDateTime.now();
         printStream.println("HTTP/1.1 200 OK");
         printStream.println("Date: " +
             currentTime.format(DateTimeFormatter.RFC_1123_DATE_TIME)); //TODO 타임 포맷팅 UTF8?
