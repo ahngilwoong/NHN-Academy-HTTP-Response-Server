@@ -1,5 +1,6 @@
 package com.nhnacademy.httpserver;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.responsedata.ClassPacket;
 import java.io.BufferedReader;
@@ -9,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -41,8 +43,7 @@ public class ResponseThread implements Runnable {
             byte[] byteArr = new byte[4096];
             int readByteCount = in.read(byteArr);
             String message = new String(byteArr, 0, readByteCount, "UTF-8");
-            System.out.println(message);
-
+            System.out.println(message + "aaaaaaaa");
             String[] temp = message.split("\n");
             for (int i = 0; i < temp.length; i++) {
                 if (temp[i].equals("\r")) {
@@ -54,16 +55,13 @@ public class ResponseThread implements Runnable {
                     jsonStr += temp[i]; //requestBody
                 }
             }
-            System.out.println(jsonStr);
+//            System.out.println(jsonStr);
             System.out.println("여기까진 OK!");
-            System.out.println(socket.getLocalAddress());
-            System.out.println(
-                "json Str = " + jsonStr.trim()); // str 앞에 \r이 붙어있어서 씹힌다. 그러므로 trim으로 없애 넘겨줌.
+            System.out.println("test---------"); // str 앞에 \r이 붙어있어서 씹힌다. 그러므로 trim으로 없애 넘겨줌.
 
             //-----------------Requset 패킷 받아온 값들 .
 
             ClassPacket request = new ClassPacket(packetSave, jsonStr.trim());
-
             PrintStream printStream = new PrintStream(socket.getOutputStream());
 
             ObjectMapper mapper = new ObjectMapper();
@@ -90,22 +88,39 @@ public class ResponseThread implements Runnable {
                 printResponseHeader(printStream, responseJsonBody);
                 printStream.println(responseJsonBody);
             } else if (request.getUrlPath().contains("/post")) {
+                if(!request.getRequestHeader("Content-Type").contains("multipart/form-data")){
+                    map.put("args", createArgsMap(request.getUrlPathArgs()));
+                    map.put("data", createDataObject(jsonStr));
+                    map.put("files", createFileObject(request, message));
+                    map.put("form", createFormObject());
+                    Map<String ,String> s = headerMapSetting(request);
+                    s.put("Content-Length", message.toString().length()+"");
+                    map.put("headers", s);
+                    map.put("json", createJson(jsonStr));
+                    map.put("origin", socket.getInetAddress().toString().replace("/", ""));
+                    map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
+                    String responseJsonBody =
+                        mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
 
-                map.put("args", createArgsMap(request.getUrlPathArgs()));
-                map.put("data", createDataObject(jsonStr));
-                map.put("files", createFileObject());
-                map.put("form", createFormObject());
-                Map<String ,String> s = headerMapSetting(request);
-                s.put("Content-Length", message.toString().length()+"");
-                map.put("headers", s);
-                map.put("json", createJson(jsonStr));
-                map.put("origin", socket.getInetAddress().toString().replace("/", ""));
-                map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
-                String responseJsonBody =
-                    mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
+                    printResponseHeader(printStream, responseJsonBody);
+                    printStream.println(responseJsonBody);
+                } else {
+                    map.put("args", createArgsMap(request.getUrlPathArgs()));
+                    map.put("data", "");
+                    map.put("files", createFileObject(request, message));
+                    map.put("form", createFormObject());
+                    Map<String ,String> s = headerMapSetting(request);
+                    s.put("Content-Length", message.toString().length()+"");
+                    map.put("headers", s);
+                    map.put("json", "");
+                    map.put("origin", socket.getInetAddress().toString().replace("/", ""));
+                    map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
+                    String responseJsonBody =
+                        mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
 
-                printResponseHeader(printStream, responseJsonBody);
-                printStream.println(responseJsonBody);
+                    printResponseHeader(printStream, responseJsonBody);
+                    printStream.println(responseJsonBody);
+                }
 
 
             } else {
@@ -140,8 +155,53 @@ public class ResponseThread implements Runnable {
         return returnFormMap;
     }
 
-    private Object createFileObject() {
+    private Object createFileObject(ClassPacket request, String message) throws IOException {
         Map<String, String> returnFileMap = new HashMap<>();
+        String contetnType = request.getRequestHeader("Content-Type");
+        String[] filterArr = contetnType.split("boundary=");
+        String filter = filterArr[1];
+        System.out.println("필터적용");
+//        System.out.println(message);
+        byte[] bytes =  request.getRequestBody().getBytes(StandardCharsets.UTF_8);
+        StringBuilder sb = new StringBuilder();
+        boolean start=false;
+        for(int i=0; i<bytes.length; i++){
+            String s = Character.toString(bytes[i]);
+//            System.out.println(s);
+
+            if("{".equals(s)){
+                start=true;
+            }
+            if(start){
+                sb.append(s);
+            }
+
+            if("}".equals(s)){
+                start=false;
+            }
+
+        }
+        System.out.println("data:" + sb.toString());
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String,String> tempMap = objectMapper.readValue(sb.toString(), new TypeReference<Map<String,String>>() {
+        });
+
+        System.out.println("tempMap:" +tempMap);
+
+//        for (String s : test) {
+//            System.out.println(s);
+//        }
+//        String test = request.getRequestBody().substring(request.getRequestBody().indexOf("{"), request.getRequestBody().indexOf("}"));
+//        System.out.println(test);
+        String[] temp = request.getRequestBody().split(filter);
+
+        for (String s : temp) {
+
+        }
+
+//        System.out.println(temp[1]);
+//        sou
         return returnFileMap;
     }
 
