@@ -11,6 +11,8 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -70,15 +72,16 @@ public class ResponseThread implements Runnable {
             Map<String, String> map = new HashMap<>();
 
             if(request.getUrlPath().contains("/ip")){
-                SimpleDateFormat formatter = new SimpleDateFormat ( "EEE, d MMM yyyy HH:mm:ss Z", Locale.KOREA );
-                Date currentTime = new Date();
-                String dTime = formatter.format ( currentTime );
+//                SimpleDateFormat formatter = new SimpleDateFormat ( "EEE, d MMM yyyy HH:mm:ss Z", Locale.KOREA );
+                OffsetDateTime currentTime = OffsetDateTime.now();
+//                Date currentTime = new Date();
+//                String dTime = formatter.format ( currentTime );
                 map.put("origin", socket.getInetAddress().toString().replace("/",""));
                 String json;
                 json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
                 System.out.println(json);   // pretty-print
                 printStream.println("HTTP/1.1 200 OK");
-                printStream.println("Date: " + dTime); //TODO 타임 포맷팅 UTF8?
+                printStream.println("Date: " + currentTime.format(DateTimeFormatter.RFC_1123_DATE_TIME)); //TODO 타임 포맷팅 UTF8?
                 printStream.println("Content-Type: application/json");
                 printStream.println("Content-Length: "+ json.length());
                 printStream.println("Connection: keep-alive");
@@ -90,6 +93,16 @@ public class ResponseThread implements Runnable {
                 printStream.flush();
 
             }else if(request.getUrlPath().contains("/get")){
+                Map<String, String> headerMap = new HashMap<>();
+                headerMap.put("Accept", request.getRequestHeader("Accept"));
+                headerMap.put("Host", request.getRequestHeader("Host"));
+                headerMap.put("User-Agent", request.getRequestHeader("User-Agent"));
+                String headerJsonStr = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(headerMap);
+                map.put("args", request.getUrlPath());
+                map.put("hearders", headerJsonStr);
+                map.put("origin", socket.getInetAddress().toString().replace("/",""));
+                String responseJsonBody = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
+                System.out.println(responseJsonBody);
 
             }else if(request.getUrlPath().contains("/post")){
 
