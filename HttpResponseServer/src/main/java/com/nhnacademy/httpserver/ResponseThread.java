@@ -69,6 +69,7 @@ public class ResponseThread implements Runnable {
             Map<String, Object> map = new HashMap<>();
             OffsetDateTime currentTime = OffsetDateTime.now();
 
+
             if (request.getUrlPath().contains("/ip")) {
                 String json;
                 map.put("origin", socket.getInetAddress().toString().replace("/", ""));
@@ -79,20 +80,21 @@ public class ResponseThread implements Runnable {
                 printStream.flush();
 
             } else if (request.getUrlPath().contains("/get")) {
-                Map<String, String> headerMap = new HashMap<>();
-                headerMap.put("Accept", request.getRequestHeader("Accept"));
-                headerMap.put("Host", request.getRequestHeader("Host"));
-                headerMap.put("User-Agent", request.getRequestHeader("User-Agent"));
                 map.put("args", createArgsMap(request.getUrlPathArgs()));
-                map.put("hearders", headerMap);
+                map.put("hearders", headerMapSetting(request));
                 map.put("origin", socket.getInetAddress().toString().replace("/", ""));
-                map.put("url", socket.getLocalAddress().toString().replace("/", "") + "/get");
+                map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
                 String responseJsonBody =
                     mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
 
                 printResponseHeader(printStream, currentTime, responseJsonBody);
                 printStream.println(responseJsonBody);
             } else if (request.getUrlPath().contains("/post")) {
+                map.put("args", createArgsMap(request.getUrlPathArgs()));
+                map.put("hearders", headerMapSetting(request));
+                map.put("origin", socket.getInetAddress().toString().replace("/", ""));
+                map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
+
 
             } else {
                 // output으로 4xx에러 발생 시키기.
@@ -133,11 +135,29 @@ public class ResponseThread implements Runnable {
 
     }
 
-    public Map<String, String> createArgsMap(String input) {
-
-        String[] args = input.split("=");
+    public Map<String, String> headerMapSetting(ClassPacket request){
+        Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("Host", request.getRequestHeader("Host"));
+        headerMap.put("User-Agent", request.getRequestHeader("User-Agent"));
+        headerMap.put("Accept", request.getRequestHeader("Accept"));
+        headerMap.put("Host", request.getRequestHeader("Host"));
+        return headerMap;
+    }
+    public Object createArgsMap(String input) { // TODO 시간이 남는다면 형식에 맞게 안들어올때 Exception처리
         Map<String, String> returnMap = new HashMap<>();
-        returnMap.put(args[0], args[1]);
+        if(input.equals("")){
+            return returnMap;
+        }
+        if(input.contains("&")){
+            String[] splitAndStr = input.split("&");
+            for (int i = 0; i < splitAndStr.length; i++) {
+                String[] splitEqualStr = splitAndStr[i].split("=");
+                returnMap.put(splitEqualStr[0], splitEqualStr[1]);
+            }
+        }else{
+            String[] args = input.split("=");
+            returnMap.put(args[0], args[1]);
+        }
         return returnMap;
     }
 
