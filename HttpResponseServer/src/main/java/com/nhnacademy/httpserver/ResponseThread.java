@@ -67,7 +67,7 @@ public class ResponseThread implements Runnable {
             PrintStream printStream = new PrintStream(socket.getOutputStream());
 
             ObjectMapper mapper = new ObjectMapper();
-            Map<String, Object> map = new HashMap<>();
+            Map<String, Object> map = new LinkedHashMap<>();
 
 
             if (request.getUrlPath().contains("/ip")) {
@@ -96,10 +96,9 @@ public class ResponseThread implements Runnable {
                 map.put("files", createFileObject());
                 map.put("form", createFormObject());
                 Map<String ,String> s = headerMapSetting(request);
-                map.put("json", createJson(jsonStr));
-
                 s.put("Content-Length", message.toString().length()+"");
                 map.put("headers", s);
+                map.put("json", createJson(jsonStr));
                 map.put("origin", socket.getInetAddress().toString().replace("/", ""));
                 map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
                 String responseJsonBody =
