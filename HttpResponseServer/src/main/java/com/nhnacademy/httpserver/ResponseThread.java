@@ -71,14 +71,13 @@ public class ResponseThread implements Runnable {
 
             ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> map = new HashMap<>();
-            OffsetDateTime currentTime = OffsetDateTime.now();
 
             if(request.getUrlPath().contains("/ip")){
                 String json;
                 map.put("origin", socket.getInetAddress().toString().replace("/",""));
                 json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
                 System.out.println(json);   // pretty-print
-                printResponseHeader(printStream, currentTime, json);
+                printResponseHeader(printStream, json);
                 printStream.println(json);
                 printStream.flush();
 
@@ -92,10 +91,12 @@ public class ResponseThread implements Runnable {
                 map.put("origin", socket.getInetAddress().toString().replace("/",""));
                 map.put("url",socket.getLocalAddress().toString().replace("/","")+"/get");
                 String responseJsonBody = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
-                if(!request.getUrlPath().contains("?")){
-                    printResponseHeader(printStream, currentTime, responseJsonBody);
+                if(request.getUrlPath().contains("/get?")){
+                    printResponseHeader(printStream, responseJsonBody);
                 }
                 printStream.println(responseJsonBody);
+                printStream.flush();
+                printStream.println("\n");
             }else if(request.getUrlPath().contains("/post")){
 
             }else{
@@ -107,7 +108,8 @@ public class ResponseThread implements Runnable {
         }
     }
 
-    private void printResponseHeader(PrintStream printStream, OffsetDateTime currentTime, String json) {
+    private void printResponseHeader(PrintStream printStream, String json) {
+        OffsetDateTime currentTime = OffsetDateTime.now();
         printStream.println("HTTP/1.1 200 OK");
         printStream.println("Date: " + currentTime.format(DateTimeFormatter.RFC_1123_DATE_TIME)); //TODO 타임 포맷팅 UTF8?
         printStream.println("Content-Type: application/json");
