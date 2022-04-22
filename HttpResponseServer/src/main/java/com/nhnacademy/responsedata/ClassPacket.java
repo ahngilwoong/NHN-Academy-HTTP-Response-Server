@@ -9,7 +9,7 @@ public class ClassPacket {
     Map<String, String> requestHeaderMap = new HashMap<>();
     String xMethod;
     String urlPath;
-    String urlPathArgs;
+    String urlPathArgs="";
     String requestBody;
 
     public ClassPacket(List<String> packetSaveList, String requestBody) {
@@ -23,7 +23,6 @@ public class ClassPacket {
             urlPathArgs = splitArr[1].split("\\?")[1]; // url에 파라미터가 있는 경우 ? 뒤 값 저장.
         }else{
             this.urlPath = splitArr[1];
-            this.urlPathArgs = "";
         }
     }
 
