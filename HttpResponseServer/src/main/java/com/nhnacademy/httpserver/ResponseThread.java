@@ -44,6 +44,7 @@ public class ResponseThread implements Runnable {
             int readByteCount = in.read(byteArr);
             String message = new String(byteArr, 0, readByteCount, "UTF-8");
             System.out.println(message);
+
             String[] temp = message.split("\n");
             for (int i = 0; i < temp.length; i++) {
                 if(temp[i].equals("\r")) {
@@ -57,10 +58,14 @@ public class ResponseThread implements Runnable {
             }
             System.out.println(jsonStr);
             System.out.println("여기까진 OK!");
-
             System.out.println("json Str = "+ jsonStr.trim()); // str 앞에 \r이 붙어있어서 씹힌다. 그러므로 trim으로 없애 넘겨줌.
+
+            //-----------------Requset 패킷 받아온 값들 .
+
             ClassPacket request = new ClassPacket(packetSave,jsonStr.trim());
+
             PrintStream printStream = new PrintStream(socket.getOutputStream());
+
             ObjectMapper mapper = new ObjectMapper();
             Map<String, String> map = new HashMap<>();
 
@@ -73,9 +78,13 @@ public class ResponseThread implements Runnable {
                 json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
                 System.out.println(json);   // pretty-print
                 printStream.println("HTTP/1.1 200 OK");
-                printStream.println("Date: " + dTime);
+                printStream.println("Date: " + dTime); //TODO 타임 포맷팅 UTF8?
                 printStream.println("Content-Type: application/json");
                 printStream.println("Content-Length: "+ json.length());
+                printStream.println("Connection: keep-alive");
+                printStream.println("Server: gunicorn/19.9.0");
+                printStream.println("Access-Control-Allow-Origin: *");
+                printStream.println("Access-Control-Allow-Credentials: true");
                 printStream.println();
                 printStream.println(json);
                 printStream.flush();
