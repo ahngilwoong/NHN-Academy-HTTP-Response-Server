@@ -71,25 +71,14 @@ public class ResponseThread implements Runnable {
 
             ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> map = new HashMap<>();
+            OffsetDateTime currentTime = OffsetDateTime.now();
 
             if(request.getUrlPath().contains("/ip")){
-//                SimpleDateFormat formatter = new SimpleDateFormat ( "EEE, d MMM yyyy HH:mm:ss Z", Locale.KOREA );
-                OffsetDateTime currentTime = OffsetDateTime.now();
-//                Date currentTime = new Date();
-//                String dTime = formatter.format ( currentTime );
-                map.put("origin", socket.getInetAddress().toString().replace("/",""));
                 String json;
+                map.put("origin", socket.getInetAddress().toString().replace("/",""));
                 json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
                 System.out.println(json);   // pretty-print
-                printStream.println("HTTP/1.1 200 OK");
-                printStream.println("Date: " + currentTime.format(DateTimeFormatter.RFC_1123_DATE_TIME)); //TODO 타임 포맷팅 UTF8?
-                printStream.println("Content-Type: application/json");
-                printStream.println("Content-Length: "+ json.length());
-                printStream.println("Connection: keep-alive");
-                printStream.println("Server: gunicorn/19.9.0");
-                printStream.println("Access-Control-Allow-Origin: *");
-                printStream.println("Access-Control-Allow-Credentials: true");
-                printStream.println();
+                printResponseHeader(printStream, currentTime, json);
                 printStream.println(json);
                 printStream.flush();
 
@@ -103,6 +92,9 @@ public class ResponseThread implements Runnable {
                 map.put("origin", socket.getInetAddress().toString().replace("/",""));
                 map.put("url",socket.getLocalAddress().toString().replace("/","")+"/get");
                 String responseJsonBody = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
+                if(!request.getUrlPath().contains("?")){
+                    printResponseHeader(printStream, currentTime, responseJsonBody);
+                }
                 printStream.println(responseJsonBody);
             }else if(request.getUrlPath().contains("/post")){
 
@@ -114,6 +106,19 @@ public class ResponseThread implements Runnable {
             e.printStackTrace();
         }
     }
+
+    private void printResponseHeader(PrintStream printStream, OffsetDateTime currentTime, String json) {
+        printStream.println("HTTP/1.1 200 OK");
+        printStream.println("Date: " + currentTime.format(DateTimeFormatter.RFC_1123_DATE_TIME)); //TODO 타임 포맷팅 UTF8?
+        printStream.println("Content-Type: application/json");
+        printStream.println("Content-Length: "+ json.length());
+        printStream.println("Connection: keep-alive");
+        printStream.println("Server: gunicorn/19.9.0");
+        printStream.println("Access-Control-Allow-Origin: *");
+        printStream.println("Access-Control-Allow-Credentials: true");
+        printStream.println();
+    }
+
     public void ipController(ClassPacket request){
 
     }
