@@ -23,11 +23,12 @@ public class ClassPacket {
             urlPathArgs = splitArr[1].split("\\?")[1]; // url에 파라미터가 있는 경우 ? 뒤 값 저장.
         }else{
             this.urlPath = splitArr[1];
+            this.urlPathArgs = "";
         }
     }
 
     public void headerListToMap(List<String> list){
-        for (int i = 1; i < list.size()-1; i++) { // 0번쨰 줄은 메소드와 path이므로 위에서 미리 처리함.
+        for (int i = 1; i < list.size(); i++) { // 0번쨰 줄은 메소드와 path이므로 위에서 미리 처리함.
             String[] temp = list.get(i).split(":");
             requestHeaderMap.put(temp[0].trim(),temp[1].trim());
         }

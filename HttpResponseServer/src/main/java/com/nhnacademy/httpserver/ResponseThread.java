@@ -60,6 +60,7 @@ public class ResponseThread implements Runnable {
             }
             System.out.println(jsonStr);
             System.out.println("여기까진 OK!");
+            System.out.println(socket.getLocalAddress());
             System.out.println("json Str = "+ jsonStr.trim()); // str 앞에 \r이 붙어있어서 씹힌다. 그러므로 trim으로 없애 넘겨줌.
 
             //-----------------Requset 패킷 받아온 값들 .
@@ -69,7 +70,7 @@ public class ResponseThread implements Runnable {
             PrintStream printStream = new PrintStream(socket.getOutputStream());
 
             ObjectMapper mapper = new ObjectMapper();
-            Map<String, String> map = new HashMap<>();
+            Map<String, Object> map = new HashMap<>();
 
             if(request.getUrlPath().contains("/ip")){
 //                SimpleDateFormat formatter = new SimpleDateFormat ( "EEE, d MMM yyyy HH:mm:ss Z", Locale.KOREA );
@@ -94,19 +95,15 @@ public class ResponseThread implements Runnable {
 
             }else if(request.getUrlPath().contains("/get")){
                 Map<String, String> headerMap = new HashMap<>();
-                Map<String, Object> test = new HashMap<>();
                 headerMap.put("Accept", request.getRequestHeader("Accept"));
                 headerMap.put("Host", request.getRequestHeader("Host"));
                 headerMap.put("User-Agent", request.getRequestHeader("User-Agent"));
-                test.put("args", request.getUrlPathArgs());
-                test.put("hearders", headerMap);
-                test.put("origin", socket.getInetAddress().toString().replace("/",""));
-                test.put("test", map);
-                String responseJsonBody = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(test);
-                System.out.println(responseJsonBody);
-                printStream.println("HTTP/1.1 200 OK");
+                map.put("args", request.getUrlPathArgs());
+                map.put("hearders", headerMap);
+                map.put("origin", socket.getInetAddress().toString().replace("/",""));
+                map.put("url",socket.getLocalAddress().toString().replace("/","")+"/get");
+                String responseJsonBody = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
                 printStream.println(responseJsonBody);
-
             }else if(request.getUrlPath().contains("/post")){
 
             }else{
