@@ -94,14 +94,14 @@ public class ResponseThread implements Runnable {
 
             }else if(request.getUrlPath().contains("/get")){
                 Map<String, String> headerMap = new HashMap<>();
-                Map<String, Map<String,String>> test = new HashMap<>();
+                Map<String, Object> test = new HashMap<>();
                 headerMap.put("Accept", request.getRequestHeader("Accept"));
                 headerMap.put("Host", request.getRequestHeader("Host"));
                 headerMap.put("User-Agent", request.getRequestHeader("User-Agent"));
-                map.put("args", request.getUrlPathArgs());
-//                test.put("hearders", headerMap);
-                map.put("origin", socket.getInetAddress().toString().replace("/",""));
-//                test.put("test", map);
+                test.put("args", request.getUrlPathArgs());
+                test.put("hearders", headerMap);
+                test.put("origin", socket.getInetAddress().toString().replace("/",""));
+                test.put("test", map);
                 String responseJsonBody = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(test);
                 System.out.println(responseJsonBody);
                 printStream.println("HTTP/1.1 200 OK");
