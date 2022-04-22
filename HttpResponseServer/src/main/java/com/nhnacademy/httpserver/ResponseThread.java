@@ -50,12 +50,12 @@ public class ResponseThread implements Runnable {
             String[] temp = message.split("\n");
             for (int i = 0; i < temp.length; i++) {
                 if(temp[i].equals("\r")) {
-                    isChecked = true;
+                    isChecked = true; //requestHeader body 구분
                 }
                 if(!isChecked){
                     packetSave.add(temp[i]);
                 }else{
-                    jsonStr+=temp[i];
+                    jsonStr+=temp[i]; //requestBody
                 }
             }
             System.out.println(jsonStr);
@@ -94,15 +94,18 @@ public class ResponseThread implements Runnable {
 
             }else if(request.getUrlPath().contains("/get")){
                 Map<String, String> headerMap = new HashMap<>();
+                Map<String, Map<String,String>> test = new HashMap<>();
                 headerMap.put("Accept", request.getRequestHeader("Accept"));
                 headerMap.put("Host", request.getRequestHeader("Host"));
                 headerMap.put("User-Agent", request.getRequestHeader("User-Agent"));
-                String headerJsonStr = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(headerMap);
-                map.put("args", request.getUrlPath());
-                map.put("hearders", headerJsonStr);
+                map.put("args", request.getUrlPathArgs());
+//                test.put("hearders", headerMap);
                 map.put("origin", socket.getInetAddress().toString().replace("/",""));
-                String responseJsonBody = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
+//                test.put("test", map);
+                String responseJsonBody = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(test);
                 System.out.println(responseJsonBody);
+                printStream.println("HTTP/1.1 200 OK");
+                printStream.println(responseJsonBody);
 
             }else if(request.getUrlPath().contains("/post")){
 
