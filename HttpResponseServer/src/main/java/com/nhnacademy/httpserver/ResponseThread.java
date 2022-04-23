@@ -1,5 +1,6 @@
 package com.nhnacademy.httpserver;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.responsedata.ClassPacket;
@@ -68,55 +69,14 @@ public class ResponseThread implements Runnable {
             Map<String, Object> map = new LinkedHashMap<>();
 
             if (request.getUrlPath().contains("/ip")) {
-                String json;
-                map.put("origin", socket.getInetAddress().toString().replace("/", ""));
-                json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
-                System.out.println(json);   // pretty-print
-                printResponseHeader(printStream, json);
-                printStream.println(json);
-                printStream.flush();
-
+                ipController(printStream,map,mapper);
             } else if (request.getUrlPath().contains("/get")) {
-                map.put("args", createArgsMap(request.getUrlPathArgs()));
-                map.put("hearders", headerMapSetting(request));
-                map.put("origin", socket.getInetAddress().toString().replace("/", ""));
-                map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
-                String responseJsonBody =
-                    mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
-
-                printResponseHeader(printStream, responseJsonBody);
-                printStream.println(responseJsonBody);
+                getController(printStream,map,mapper,request);
             } else if (request.getUrlPath().contains("/post")) {
                 if(!request.getRequestHeader("Content-Type").contains("multipart/form-data")){
-                    map.put("args", createArgsMap(request.getUrlPathArgs()));
-                    map.put("data", createDataObject(jsonStr));
-                    map.put("files", createFileObject());
-                    map.put("form", createFormObject());
-                    Map<String ,String> s = headerMapSetting(request);
-                    s.put("Content-Length", message.toString().length()+"");
-                    map.put("headers", s);
-                    map.put("json", createJson(jsonStr));
-                    map.put("origin", socket.getInetAddress().toString().replace("/", ""));
-                    map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
-                    String responseJsonBody =
-                        mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
-                    printResponseHeader(printStream, responseJsonBody);
-                    printStream.println(responseJsonBody);
+                    postController(printStream,map,mapper,request,jsonStr,message);
                 } else {
-                    map.put("args", createArgsMap(request.getUrlPathArgs()));
-                    map.put("data", "");
-                    map.put("files", wrapperMapObjectToJson("upload",createFormDataFileObject(request, message)));
-                    map.put("form", createFormObject());
-                    Map<String ,String> s = headerMapSetting(request);
-                    s.put("Content-Length", message.toString().length()+"");
-                    map.put("headers", s);
-                    map.put("json", "");
-                    map.put("origin", socket.getInetAddress().toString().replace("/", ""));
-                    map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
-                    String responseJsonBody =
-                        mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
-                    printResponseHeader(printStream, responseJsonBody);
-                    printStream.println(responseJsonBody);
+                    postFormDataController(printStream,map,mapper,request,message);
                 }
             } else {
                 // output으로 4xx에러 발생 시키기.
@@ -221,16 +181,63 @@ public class ResponseThread implements Runnable {
         printStream.println();
     }
 
-    public void ipController(ClassPacket request) {
-
+    public void ipController(PrintStream printStream, Map<String,Object> map, ObjectMapper mapper)
+        throws JsonProcessingException {
+        String json;
+        map.put("origin", socket.getInetAddress().toString().replace("/", ""));
+        json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
+        System.out.println(json);   // pretty-print
+        printResponseHeader(printStream, json);
+        printStream.println(json);
+        printStream.flush();
     }
 
-    public void getController(ClassPacket request) {
-
+    public void postFormDataController(PrintStream printStream, Map<String,Object> map, ObjectMapper mapper, ClassPacket request, String message)
+        throws IOException {
+        map.put("args", createArgsMap(request.getUrlPathArgs()));
+        map.put("data", "");
+        map.put("files", wrapperMapObjectToJson("upload",createFormDataFileObject(request, message)));
+        map.put("form", createFormObject());
+        Map<String ,String> s = headerMapSetting(request);
+        s.put("Content-Length", message.toString().length()+"");
+        map.put("headers", s);
+        map.put("json", "");
+        map.put("origin", socket.getInetAddress().toString().replace("/", ""));
+        map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
+        String responseJsonBody =
+            mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
+        printResponseHeader(printStream, responseJsonBody);
+        printStream.println(responseJsonBody);
     }
 
-    public void postController(ClassPacket request) {
+    public void getController(PrintStream printStream, Map<String,Object> map, ObjectMapper mapper, ClassPacket request)
+        throws JsonProcessingException {
+        map.put("args", createArgsMap(request.getUrlPathArgs()));
+        map.put("hearders", headerMapSetting(request));
+        map.put("origin", socket.getInetAddress().toString().replace("/", ""));
+        map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
+        String responseJsonBody =
+            mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
+        printResponseHeader(printStream, responseJsonBody);
+        printStream.println(responseJsonBody);
+    }
 
+    public void postController(PrintStream printStream, Map<String,Object> map, ObjectMapper mapper, ClassPacket request,
+                               String jsonStr, String message) throws JsonProcessingException {
+        map.put("args", createArgsMap(request.getUrlPathArgs()));
+        map.put("data", createDataObject(jsonStr));
+        map.put("files", createFileObject());
+        map.put("form", createFormObject());
+        Map<String ,String> s = headerMapSetting(request);
+        s.put("Content-Length", message.toString().length()+"");
+        map.put("headers", s);
+        map.put("json", createJson(jsonStr));
+        map.put("origin", socket.getInetAddress().toString().replace("/", ""));
+        map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
+        String responseJsonBody =
+            mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
+        printResponseHeader(printStream, responseJsonBody);
+        printStream.println(responseJsonBody);
     }
 
     public void responseHeader(ClassPacket request) {
