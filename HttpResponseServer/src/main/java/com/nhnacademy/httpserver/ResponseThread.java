@@ -67,7 +67,6 @@ public class ResponseThread implements Runnable {
             ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> map = new LinkedHashMap<>();
 
-
             if (request.getUrlPath().contains("/ip")) {
                 String json;
                 map.put("origin", socket.getInetAddress().toString().replace("/", ""));
@@ -91,7 +90,7 @@ public class ResponseThread implements Runnable {
                 if(!request.getRequestHeader("Content-Type").contains("multipart/form-data")){
                     map.put("args", createArgsMap(request.getUrlPathArgs()));
                     map.put("data", createDataObject(jsonStr));
-                    map.put("files", createFileObject(request, message));
+                    map.put("files", createFileObject());
                     map.put("form", createFormObject());
                     Map<String ,String> s = headerMapSetting(request);
                     s.put("Content-Length", message.toString().length()+"");
@@ -101,13 +100,12 @@ public class ResponseThread implements Runnable {
                     map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
                     String responseJsonBody =
                         mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
-
                     printResponseHeader(printStream, responseJsonBody);
                     printStream.println(responseJsonBody);
                 } else {
                     map.put("args", createArgsMap(request.getUrlPathArgs()));
                     map.put("data", "");
-                    map.put("files", createFileObject(request, message));
+                    map.put("files", wrapperMapObjectToJson("upload",createFormDataFileObject(request, message)));
                     map.put("form", createFormObject());
                     Map<String ,String> s = headerMapSetting(request);
                     s.put("Content-Length", message.toString().length()+"");
@@ -117,19 +115,20 @@ public class ResponseThread implements Runnable {
                     map.put("url", socket.getLocalAddress().toString().replace("/", "") + request.getUrlPath());
                     String responseJsonBody =
                         mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
-
                     printResponseHeader(printStream, responseJsonBody);
                     printStream.println(responseJsonBody);
                 }
-
-
             } else {
                 // output으로 4xx에러 발생 시키기.
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private Object createFileObject() {
+        Map<String, String> fileObjectMap = new HashMap<>();
+        return fileObjectMap;
     }
 
     private Object createJson(String jsonStr) {
@@ -146,7 +145,6 @@ public class ResponseThread implements Runnable {
                 returnJson.put(temp[0].trim(), temp[1].trim());
             }
         }
-
         return returnJson;
     }
 
@@ -155,8 +153,8 @@ public class ResponseThread implements Runnable {
         return returnFormMap;
     }
 
-    private Object createFileObject(ClassPacket request, String message) throws IOException {
-        Map<String, String> returnFileMap = new HashMap<>();
+    private Object createFormDataFileObject(ClassPacket request, String message) throws IOException {
+        //TODO form data형식이 아닌 그냥 post형식에도 메소드가 작동하는지 확인 필요.
         String contetnType = request.getRequestHeader("Content-Type");
         String[] filterArr = contetnType.split("boundary=");
         String filter = filterArr[1];
@@ -175,18 +173,13 @@ public class ResponseThread implements Runnable {
             if(start){
                 sb.append(s);
             }
-
             if("}".equals(s)){
                 start=false;
             }
-
         }
         System.out.println("data:" + sb.toString());
-
         ObjectMapper objectMapper = new ObjectMapper();
-        Map<String,String> tempMap = objectMapper.readValue(sb.toString(), new TypeReference<Map<String,String>>() {
-        });
-
+        Map<String,String> tempMap = objectMapper.readValue(sb.toString(), new TypeReference<Map<String,String>>() {});
         System.out.println("tempMap:" +tempMap);
 
 //        for (String s : test) {
@@ -196,19 +189,21 @@ public class ResponseThread implements Runnable {
 //        System.out.println(test);
         String[] temp = request.getRequestBody().split(filter);
 
-        for (String s : temp) {
-
-        }
-
 //        System.out.println(temp[1]);
 //        sou
-        return returnFileMap;
+        return tempMap;
     }
 
     private Object createDataObject(String jsonStr) {
         List<String> returnDataList = new ArrayList<>();
         returnDataList.add(jsonStr.trim());
         return returnDataList;
+    }
+
+    private Object wrapperMapObjectToJson(String name, Object obj){
+        Map<String,Object> wrapperMap = new HashMap<>();
+        wrapperMap.put(name,obj);
+        return wrapperMap;
     }
 
     private void printResponseHeader(PrintStream printStream,
