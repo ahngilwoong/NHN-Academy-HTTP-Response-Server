@@ -7,7 +7,6 @@ com\nhnacademy\controller\GetController.class
 com\nhnacademy\controller\PostController.class
 com\nhnacademy\responsedata\responsebodyproperty\Json.class
 com\nhnacademy\responsedata\responsebodyproperty\Headers.class
-com\nhnacademy\controller\PostFormDataController$1.class
 com\nhnacademy\controller\PostFormDataController.class
 com\nhnacademy\httpserver\ResponseServer.class
 com\nhnacademy\responsedata\responsebodyproperty\Files.class

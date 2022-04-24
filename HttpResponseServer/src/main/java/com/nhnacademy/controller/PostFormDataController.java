@@ -1,8 +1,6 @@
 package com.nhnacademy.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.responsedata.ClassPacket;
 import com.nhnacademy.responsedata.ResponseHeader;
@@ -52,9 +50,7 @@ public class PostFormDataController {
         map.put("data", "");
         map.put("files", createFormDataFileMap(request));
         map.put("form", form.createFormMap());
-        Map<String ,String> headersMap = headers.createHeadersMap(request);
-        headersMap.put("Content-Length", message.length()+"");
-        map.put("headers", headersMap);
+        map.put("headers", headers.createPostHeadersMap(request, message));
         map.put("json", "");
         map.put("origin", socket.getInetAddress().toString().replace("/", ""));
         map.put("url", request.getRequestHeader("Host") + request.getUrlPath());
@@ -72,7 +68,7 @@ public class PostFormDataController {
 
     private Map<String, String> createFormDataFileMap(ClassPacket request)
         throws JsonProcessingException {
-        Map<String, String> returnFileMap;
+        Map<String, String> returnFileMap = new LinkedHashMap<>();
         byte[] bytes = request.getRequestBody().getBytes(StandardCharsets.UTF_8);
         StringBuilder sb = new StringBuilder();
         boolean start = false;
@@ -91,8 +87,7 @@ public class PostFormDataController {
         }
         String fileContent = sb.toString();
         System.out.println("data:" + sb.toString());
-        ObjectMapper objectMapper = new ObjectMapper();
-        returnFileMap = objectMapper.readValue(sb.toString(), new TypeReference<Map<String,String>>() {});
+        returnFileMap.put("upload", sb.toString());
 
         //파일로 저장
         File file = new File("./src/main/resources/" + "msg.json");

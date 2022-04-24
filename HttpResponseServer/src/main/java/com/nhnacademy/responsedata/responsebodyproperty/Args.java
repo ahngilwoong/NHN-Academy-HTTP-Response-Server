@@ -1,13 +1,13 @@
 package com.nhnacademy.responsedata.responsebodyproperty;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 public class Args {
 
     public Map<String, String> createArgsMap(String urlPathArgs) {
-        Map<String, String> returnMap = new HashMap<>();
+        Map<String, String> returnMap = new LinkedHashMap<>();
         if (StringUtils.isEmpty(urlPathArgs)) {
             return returnMap;
         }

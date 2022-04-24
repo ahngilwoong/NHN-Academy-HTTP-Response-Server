@@ -44,9 +44,7 @@ public class PostController {
         map.put("data", data.createDataList(jsonStr));
         map.put("files", files.createFileMap());
         map.put("form", form.createFormMap());
-        Map<String ,String> headersMap = headers.createHeadersMap(request);
-        headersMap.put("Content-Length", message.length()+"");
-        map.put("headers", headersMap);
+        map.put("headers", headers.createPostHeadersMap(request, message));
         map.put("json", json.createJsonMap(jsonStr));
         map.put("origin", socket.getInetAddress().toString().replace("/", ""));
         map.put("url", request.getRequestHeader("Host") + request.getUrlPath());
