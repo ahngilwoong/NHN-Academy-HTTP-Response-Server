@@ -3,9 +3,8 @@ package com.nhnacademy.httpserver;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.URL;
 
-public class NetCat {
+public class ResponseServer {
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = null;
         try {

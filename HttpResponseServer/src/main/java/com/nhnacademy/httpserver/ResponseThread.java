@@ -2,7 +2,9 @@ package com.nhnacademy.httpserver;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nhnacademy.exception.StatusCodeFoundException;
 import com.nhnacademy.responsedata.ClassPacket;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -23,7 +25,6 @@ import java.util.Map;
 public class ResponseThread implements Runnable {
     Socket socket;
     DataInputStream in;
-    DataOutputStream out;
     List<String> packetSave = new ArrayList<>();
 
     ResponseThread(Socket socket) {
@@ -40,6 +41,7 @@ public class ResponseThread implements Runnable {
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
             String line;
             boolean isChecked = false;
+
             String jsonStr = "";
             byte[] byteArr = new byte[4096];
             int readByteCount = in.read(byteArr);
@@ -56,7 +58,6 @@ public class ResponseThread implements Runnable {
                     jsonStr += temp[i]; //requestBody
                 }
             }
-//            System.out.println(jsonStr);
             System.out.println("여기까진 OK!");
             System.out.println("test---------"); // str 앞에 \r이 붙어있어서 씹힌다. 그러므로 trim으로 없애 넘겨줌.
 
@@ -79,7 +80,7 @@ public class ResponseThread implements Runnable {
                     postFormDataController(printStream,map,mapper,request,message);
                 }
             } else {
-                // output으로 4xx에러 발생 시키기.
+                new StatusCodeFoundException("404 ERROR");
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -113,44 +114,40 @@ public class ResponseThread implements Runnable {
         return returnFormMap;
     }
 
-    private Object createFormDataFileObject(ClassPacket request, String message) throws IOException {
+    private Object createFormDataFileObject(ClassPacket request, String message) {
         //TODO form data형식이 아닌 그냥 post형식에도 메소드가 작동하는지 확인 필요.
-        String contetnType = request.getRequestHeader("Content-Type");
-        String[] filterArr = contetnType.split("boundary=");
-        String filter = filterArr[1];
-        System.out.println("필터적용");
-//        System.out.println(message);
-        byte[] bytes =  request.getRequestBody().getBytes(StandardCharsets.UTF_8);
-        StringBuilder sb = new StringBuilder();
-        boolean start=false;
-        for(int i=0; i<bytes.length; i++){
-            String s = Character.toString(bytes[i]);
-//            System.out.println(s);
+        Map<String,String> tempMap = null;
+        try{
+            String contetnType = request.getRequestHeader("Content-Type");
+            String[] filterArr = contetnType.split("boundary=");
+            String filter = filterArr[1];
+            System.out.println("필터적용");
+            byte[] bytes =  request.getRequestBody().getBytes(StandardCharsets.UTF_8);
+            StringBuilder sb = new StringBuilder();
+            boolean start=false;
+            for(int i=0; i<bytes.length; i++){
+                String s = Character.toString(bytes[i]);
+                if("{".equals(s)){
+                    start=true;
+                }
+                if(start){
+                    sb.append(s);
+                }
+                if("}".equals(s)){
+                    start=false;
+                }
+            }
+            System.out.println("data:" + sb.toString());
+            ObjectMapper objectMapper = new ObjectMapper();
+            tempMap = objectMapper.readValue(sb.toString(), new TypeReference<Map<String,String>>() {});
+            System.out.println("tempMap:" +tempMap);
 
-            if("{".equals(s)){
-                start=true;
-            }
-            if(start){
-                sb.append(s);
-            }
-            if("}".equals(s)){
-                start=false;
-            }
+            String[] temp = request.getRequestBody().split(filter);
+        } catch (JsonMappingException e) {
+            e.printStackTrace();
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
         }
-        System.out.println("data:" + sb.toString());
-        ObjectMapper objectMapper = new ObjectMapper();
-        Map<String,String> tempMap = objectMapper.readValue(sb.toString(), new TypeReference<Map<String,String>>() {});
-        System.out.println("tempMap:" +tempMap);
-
-//        for (String s : test) {
-//            System.out.println(s);
-//        }
-//        String test = request.getRequestBody().substring(request.getRequestBody().indexOf("{"), request.getRequestBody().indexOf("}"));
-//        System.out.println(test);
-        String[] temp = request.getRequestBody().split(filter);
-
-//        System.out.println(temp[1]);
-//        sou
         return tempMap;
     }
 
@@ -238,10 +235,6 @@ public class ResponseThread implements Runnable {
             mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
         printResponseHeader(printStream, responseJsonBody);
         printStream.println(responseJsonBody);
-    }
-
-    public void responseHeader(ClassPacket request) {
-
     }
 
     public Map<String, String> headerMapSetting(ClassPacket request){
